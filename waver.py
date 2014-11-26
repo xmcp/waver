@@ -6,6 +6,8 @@ if sys.version[0]=='2':
     input=raw_input
 
 import libwaver as waver
+import os
+from time import sleep
 
 proj=input('Project Name:')
 with open('projects/%s.txt'%proj,'r') as f:
@@ -29,3 +31,5 @@ for line in lines:
     f.write(waver.ratable[rate],time)
 f.close()
 print('done')
+sleep(0.25)
+os.startfile(os.path.join(os.curdir,'projects/%s.wav'%proj))
