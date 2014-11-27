@@ -9,7 +9,11 @@ import libwaver as waver
 import os
 from time import sleep
 
-proj=input('Project Name:')
+if len(sys.argv)==2:
+    proj=sys.argv[1]
+    print('Project loaded: '+proj)
+else:
+    proj=input('Project Name:')
 with open('projects/%s.txt'%proj,'r') as f:
     lines=f.read().split('\n')
 
