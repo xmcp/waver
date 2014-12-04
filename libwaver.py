@@ -19,19 +19,26 @@ class wavefile(object):
     _tall=0
     
     f=None
+    data=''
     
     def __init__(self,fname):
-        self.f=wave.open(fname,'wb')
-        self.f.setnchannels(1)
-        self.f.setsampwidth(2)
-        self.f.setframerate(self._framerate)
+        if fname:
+            self.f=wave.open(fname,'wb')
+            self.f.setnchannels(1)
+            self.f.setsampwidth(2)
+            self.f.setframerate(self._framerate)
+        else:
+            self.data=''
         self._tall=0
 
     def write_bin(self,rate,time):
         t=np.arange(0,time,1.0/self._framerate)
         wave_data=signal.chirp(t,rate,time,rate,method='linear')*self._volumn
         wave_data=wave_data.astype(np.short)
-        self.f.writeframes(wave_data.tostring())
+        if self.f:
+            self.f.writeframes(wave_data.tostring())
+        else:
+            self.data+=wave_data.tostring()
         self._tall+=time
 
     def write(self,rate,time):
