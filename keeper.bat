@@ -2,10 +2,12 @@
 title Keeper
 color 0f
 mode con cols=45 lines=10
+:init
+cls
 set /p proj=Project:
+title %proj% - Keeper
 :q
 cls
-echo Keeping %proj%
-waver.py %proj%
+waver.py "%proj%"
 pause
 goto q
