@@ -1,7 +1,7 @@
 #coding=utf-8
 from __future__ import division
 import wave
-import numpy as np
+from numpy import arange,short
 from scipy import signal
 
 ratable={
@@ -15,7 +15,7 @@ ratable={
 
 class wavefile(object):
     _framerate=16384
-    _volumn=12000
+    _volumn=15000
     _tall=0
     
     f=None
@@ -32,9 +32,9 @@ class wavefile(object):
         self._tall=0
 
     def write_bin(self,rate,time):
-        t=np.arange(0,time,1.0/self._framerate)
+        t=arange(0,time,1.0/self._framerate)
         wave_data=signal.chirp(t,rate,time,rate,method='linear')*self._volumn
-        wave_data=wave_data.astype(np.short)
+        wave_data=wave_data.astype(short)
         if self.f:
             self.f.writeframes(wave_data.tostring())
         else:

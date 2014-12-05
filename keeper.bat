@@ -1,7 +1,7 @@
 @echo off
 title Keeper
 color 0f
-mode con cols=45 lines=10
+mode con cols=50 lines=25
 :init
 cls
 set /p proj=Project:
