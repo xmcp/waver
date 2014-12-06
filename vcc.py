@@ -1,5 +1,6 @@
 #coding=utf-8
-print('Loading Waver (by xmcp)...')
+if __name__=='__main__':
+    print('Loading Waver Compiler by xmcp...')
 
 import sys
 if sys.version[0]=='2':
@@ -10,23 +11,24 @@ import libwaver as waver
 import os
 from time import sleep
 
-#open file
-if len(sys.argv)==2:
-    proj=sys.argv[1]
-else:
-    proj=input('Project Name: ')
-
 nowline='(None)'
-def process(proj,workdir,f=None,parent='ROOT',parentlevel=0):
-    def log(stuff):
-        print('.'*(parentlevel*2)+stuff)
+def process(proj,workdir,f=None,parent='ROOT',parentlevel=0,logcallback=None):
+    def log(stuff,istop=False):
+        if istop:
+            outstr=stuff
+        else:
+            outstr='.'*(parentlevel*2)+stuff
+        if logcallback==None:
+            print(outstr)
+        else:
+            logcallback(outstr)
     
     global nowline
     log('Building %s->%s'%(parent,proj))
     if parentlevel>10:
-        print('[ERROR]')
-        print('Call stack upper limit exceeded.')
-        sys.exit(-2048)
+        log('[ERROR]',True)
+        log('Call stack upper limit exceeded.',True)
+        raise AssertionError
     
     if not f:
         f=waver.wavefile('projects/%s/%s.wav'%(workdir,proj))
@@ -35,10 +37,10 @@ def process(proj,workdir,f=None,parent='ROOT',parentlevel=0):
         with open('projects/%s/%s.txt'%(workdir,proj),'r') as fi:
             lines=fi.read().split('\n')
     except Exception as e:
-        print('[ERROR]')
-        print(e)
-        print('While reading project.')
-        sys.exit(-2048)
+        log('[ERROR]',True)
+        log(e,True)
+        log('While reading project.',True)
+        raise AssertionError
     #find start
     try:
         lines=lines[lines.index('[START]')+1:]
@@ -60,22 +62,31 @@ def process(proj,workdir,f=None,parent='ROOT',parentlevel=0):
             break
         if line.startswith('=> '):
             log(line)
-            process(line[3:],workdir,f,'%s->%s'%(parent,proj),parentlevel+1)
+            process(line[3:],workdir,f,'%s->%s'%(parent,proj),parentlevel+1,logcallback)
             continue
         rate=line.split('\t')[0]
         time=float(line.split('\t')[1])/4
         f.write(waver.ratable[rate],time)
     log('Built %s->%s'%(parent,proj))
     f.close()
-    
 
-try:
-    process(proj,proj)
-except Exception as e:
-    print('[ERROR]')
-    print(e)
-    print('While processing: '+nowline)
-else: #done
-    print('[FINISH]')
-    sleep(0.25)
-    os.startfile(os.path.join(os.curdir,'projects/%s/%s.wav'%(proj,proj)))
+if __name__=='__main__':
+    #open file
+    if len(sys.argv)==2:
+        proj=sys.argv[1]
+    else:
+        proj=input('Project Name: ')
+    
+    try:
+        process(proj,proj)
+    except AssertionError:
+        pass
+    except Exception as e:
+        print('[ERROR]')
+        print(e)
+        print('While processing: '+nowline)
+    else: #done
+        print('[FINISH]')
+        sleep(0.25)
+        os.startfile(os.path.join(os.curdir,'projects/%s/%s.wav'%(proj,proj)))
+

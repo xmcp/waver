@@ -8,6 +8,6 @@ set /p proj=Project:
 title %proj% - Keeper
 :q
 cls
-waver.py "%proj%"
+vcc.py "%proj%"
 pause
 goto q
