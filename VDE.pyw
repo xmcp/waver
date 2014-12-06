@@ -9,13 +9,16 @@ except ImportError:
     import tkMessageBox as messagebox
 
 import os
+import sys
 from time import sleep
-proj='(None)'
+proj=''
 
 def open_proj():
     def open_now():
         global proj
         proj=openprojname.get()
+        if not proj:
+            return
         if not os.path.isdir('projects/'+proj) or not os.path.isfile('projects/%s/%s.txt'%(proj,proj)):
             messagebox.showerror('Waver','工程不存在')
             return
@@ -24,6 +27,8 @@ def open_proj():
     def new_now():
         global proj
         proj=newprojname.get()
+        if not proj:
+            return
         if os.path.isdir('projects/'+proj):
             messagebox.showerror('Waver','工程已经存在')
             return
@@ -34,6 +39,7 @@ def open_proj():
     
     projtk=Tk()
     projtk.title('Waver IDE')
+    projtk.resizable(False,False)
     newprojname=StringVar()
     openprojname=StringVar()
     #frame
@@ -59,8 +65,17 @@ def build():
     #exec
     savefile()
     def execute():
-        def loger(a):
-            textout.insert(END,str(a)+'\n')
+        def loger(a,origin=''):
+            if origin.startswith('##'):
+                textout.insert(END,str(a)+'\n','comment')
+            elif origin.startswith('Buil'):
+                textout.insert(END,str(a)+'\n','cmd')
+            elif origin.startswith('=> '):
+                textout.insert(END,str(a)+'\n','goto')
+            elif origin=='[ERROR]' or a=='[ERROR]':
+                textout.insert(END,str(a)+'\n','error')
+            else:
+                textout.insert(END,str(a)+'\n')
             textout.see(END)
         textout.config({'state':'normal'})
         textout.delete(1.0,END)
@@ -116,6 +131,9 @@ def changefile(*_):
     filenow=filein.get()
 
 open_proj()
+if not proj:
+    sys.exit(-2048)
+
 tk=Tk()
 tk.title('%s - Waver IDE'%proj)
 filein=StringVar()
@@ -141,6 +159,10 @@ Button(frame,text='打开',command=changefile).pack(side=LEFT)
 downframe=Frame(tk)
 downframe.pack(side=TOP)
 textout=Text(downframe,height=10,state='disabled')
+textout.tag_config('comment',foreground='blue')
+textout.tag_config('cmd',foreground='red')
+textout.tag_config('goto',background='green')
+textout.tag_config('error',foreground='white',background='black')
 textout.pack(side=LEFT)
 outsbar=Scrollbar(downframe,orient=VERTICAL,command=textout.yview)
 outsbar.pack(side=RIGHT,fill='both')
