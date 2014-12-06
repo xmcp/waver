@@ -57,7 +57,6 @@ def refresh():
 
 def build():
     #exec
-    import thread
     savefile()
     def execute():
         def loger(a):
@@ -66,7 +65,6 @@ def build():
         textout.config({'state':'normal'})
         textout.delete(1.0,END)
         loger('Loading Waver Compiler...')
-        import vcc
         try:
             vcc.process(proj,proj,logcallback=loger)
         except AssertionError:
@@ -81,8 +79,12 @@ def build():
             os.startfile(os.path.join(os.curdir,'projects/%s/%s.wav'%(proj,proj)))
         finally:
             textout.config({'state':'disabled'})
-    thread.start_new_thread(execute,())
-    
+    try:
+        import threading
+        threading.Thread(target=execute,args=()).start()
+    except ImportError:
+        import thread
+        thread.start_new_thread(execute,())
 
 def savefile():
     if not filenow:
@@ -143,4 +145,5 @@ textout.pack(side=LEFT)
 outsbar=Scrollbar(downframe,orient=VERTICAL,command=textout.yview)
 outsbar.pack(side=RIGHT,fill='both')
 textout['yscrollcommand']=outsbar.set
+import vcc
 tk.mainloop()
