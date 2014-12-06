@@ -21,7 +21,7 @@ def process(proj,workdir,f=None,parent='ROOT',parentlevel=0,logcallback=None):
         if logcallback==None:
             print(outstr)
         else:
-            logcallback(outstr)
+            logcallback(outstr,stuff)
     
     global nowline
     log('Building %s->%s'%(parent,proj))
