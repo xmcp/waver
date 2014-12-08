@@ -7,7 +7,10 @@ except ImportError:
     from Tkinter import *
     from ttk import *
     import tkMessageBox as messagebox
-
+try:
+    from winsound import *
+except:
+    pass
 import os
 import sys
 from time import sleep
@@ -171,6 +174,12 @@ def changefile(*_):
             refresh()
     filenow=filein.get()
 
+def playsnd(*_):
+    PlaySound('projects/%s/%s.wav'%(proj,proj),SND_FILENAME|SND_NOWAIT|SND_ASYNC)
+
+def stopsnd(*_):
+    PlaySound(None,SND_MEMORY|SND_PURGE)
+
 open_proj()
 if not proj:
     sys.exit(-2048)
@@ -207,6 +216,8 @@ textout.tag_config('indent',foreground='blue',background='white')
 textout.pack(side=LEFT)
 #objs
 Button(frame,text='生成',command=build).pack(side=RIGHT,pady=5,padx=5)
+Button(frame,text='停止',command=stopsnd).pack(side=RIGHT,pady=5,padx=5)
+Button(frame,text='播放',command=playsnd).pack(side=RIGHT,pady=5,padx=5)
 filebox=Combobox(frame,textvariable=filein)
 refresh()
 filebox.bind('<<ComboboxSelected>>',changefile)
