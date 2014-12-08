@@ -13,17 +13,24 @@ import sys
 from time import sleep
 proj=''
 
-def log(a,mode=None):
+def log(a,mode=None,enter=True):
     textout.config({'state':'normal'})
     if mode:
-        textout.insert(END,str(a)+'\n',mode)
+        textout.insert(END,str(a),mode)
     else:
-        textout.insert(END,str(a)+'\n')
+        textout.insert(END,str(a))
+    if enter:
+        textout.insert(END,'\n')
     textout.config({'state':'disabled'})
     textout.see(END)
 
+def cls(*_):
+    textout.config({'state':'normal'})
+    textout.delete(1.0,END)
+    textout.config({'state':'disabled'})
+
 def open_proj():
-    def open_now():
+    def open_now(*_):
         global proj
         proj=openprojname.get()
         if not proj:
@@ -33,7 +40,7 @@ def open_proj():
             return
         projtk.destroy()
 
-    def new_now():
+    def new_now(*_):
         global proj
         proj=newprojname.get()
         if not proj:
@@ -59,10 +66,13 @@ def open_proj():
     #open
     openprojc=Combobox(openprojf,textvariable=openprojname)
     openprojc['values']=os.listdir('projects')
+    openprojc.bind('<Return>',open_now)
     openprojc.pack(side=LEFT)
-    Button(openprojf,text='打开',command=open_now).pack(side=RIGHT)
+    openprojbtn=Button(openprojf,text='打开',command=open_now).pack(side=RIGHT)
     #new
-    Entry(newprojf,textvariable=newprojname).pack(side=LEFT,padx=9)
+    newproje=Entry(newprojf,textvariable=newprojname)
+    newproje.bind('<Return>',new_now)
+    newproje.pack(side=LEFT,padx=9)
     Button(newprojf,text='新建',command=new_now).pack(side=RIGHT)
     #loop
     projtk.mainloop()
@@ -79,20 +89,23 @@ def build(*_):
     #exec
     savefile()
     def execute():
-        def loger(a,origin=''):
+        def loger(a,origin=None,indent=0):
+            if not origin:
+                origin=a
+            if indent:
+                log('.'*(2*indent),'indent',enter=False)
             if origin.startswith('##'):
-                log(a,'comment')
+                log(origin,'comment')
             elif origin.startswith('Buil'):
-                log(a,'info')
+                log(origin,'info')
             elif origin.startswith('=> '):
-                log(a,'goto')
+                log(origin,'goto')
             elif origin=='[ERROR]' or a=='[ERROR]':
-                log(a,'error')
+                log(origin,'error')
             else:
                 log(a)
-        textout.config({'state':'normal'})
-        textout.delete(1.0,END)
-        log('Loading Waver Central Compiler (VCC)','info')
+        cls()
+        log('Loading Waver Central Compiler (VCC)')
         try:
             vcc.process(proj,proj,logcallback=loger)
         except AssertionError:
@@ -166,10 +179,14 @@ tk=Tk()
 tk.title('%s - Waver IDE'%proj)
 tk.resizable(False,False)
 filein=StringVar()
+filein.set(proj+'.txt')
 filenow=''
+#bind
 tk.bind('<Control-s>',savefile)
+tk.bind('<Control-S>',savefile)
 tk.bind('<F5>',build)
-#left
+tk.bind('<Escape>',cls)
+#textin
 upframe=Frame(tk)
 upframe.pack(side=TOP)
 textin=Text(upframe,width=50,height=30)
@@ -179,13 +196,14 @@ sbar.pack(side=LEFT,fill='both')
 textin['yscrollcommand']=sbar.set
 frame=Frame(tk)
 frame.pack(side=TOP,fill='both')
-#right
+#textout
 textout=Text(upframe,state='disabled',width=50,height=30)
-textout.tag_config('comment',foreground='green')
-textout.tag_config('info',background='gray')
-textout.tag_config('goto',background='green')
+textout.tag_config('comment',foreground='blue',background='white')
+textout.tag_config('info',foreground='black',background='gray')
+textout.tag_config('goto',foreground='white',background='blue')
 textout.tag_config('error',foreground='white',background='red')
 textout.tag_config('success',foreground='black',background='green')
+textout.tag_config('indent',foreground='blue',background='white')
 textout.pack(side=LEFT)
 #objs
 Button(frame,text='生成',command=build).pack(side=RIGHT,pady=5,padx=5)
@@ -197,4 +215,5 @@ filebox.pack(side=LEFT,padx=5)
 Button(frame,text='打开',command=changefile).pack(side=LEFT)
 import vcc
 log('Waver IDE by xmcp','info')
+changefile()
 tk.mainloop()
