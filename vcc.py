@@ -1,6 +1,6 @@
 #coding=utf-8
 if __name__=='__main__':
-    print('Loading Waver Compiler by xmcp...')
+    print('Waver Central Compiler (VCC) by xmcp')
 
 import sys
 if sys.version[0]=='2':
@@ -10,6 +10,15 @@ if sys.version[0]=='2':
 import libwaver as waver
 import os
 from time import sleep
+
+ratable={
+    '0':0,
+    '-1':262,'-2':294,'-3':330,'-4':349,'-5':392,'-6':440,'-7':494,
+    'L1':262,'L2':294,'L3':330,'L4':349,'L5':392,'L6':440,'L7':494,
+    '1':532,'2':587,'3':659,'4':699,'5':784,'6':880,'7':988,
+    '+1':1047,'+2':1175,'+3':1319,'+4':1397,'+5':1568,'+6':1760,'+7':1976,
+    'H1':1047,'H2':1175,'H3':1319,'H4':1397,'H5':1568,'H6':1760,'H7':1976,
+}
 
 nowline='(None)'
 def process(proj,workdir,f=None,parent='ROOT',parentlevel=0,logcallback=None):
@@ -66,7 +75,7 @@ def process(proj,workdir,f=None,parent='ROOT',parentlevel=0,logcallback=None):
             continue
         rate=line.split('\t')[0]
         time=float(line.split('\t')[1])/4
-        f.write(waver.ratable[rate],time)
+        f.write(ratable[rate],time)
     log('Built %s->%s'%(parent,proj))
     f.close()
 
@@ -87,6 +96,4 @@ if __name__=='__main__':
         print('While processing: '+nowline)
     else: #done
         print('[FINISH]')
-        sleep(0.25)
-        os.startfile(os.path.join(os.curdir,'projects/%s/%s.wav'%(proj,proj)))
 

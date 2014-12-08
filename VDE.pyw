@@ -13,6 +13,15 @@ import sys
 from time import sleep
 proj=''
 
+def log(a,mode=None):
+    textout.config({'state':'normal'})
+    if mode:
+        textout.insert(END,str(a)+'\n',mode)
+    else:
+        textout.insert(END,str(a)+'\n')
+    textout.config({'state':'disabled'})
+    textout.see(END)
+
 def open_proj():
     def open_now():
         global proj
@@ -45,8 +54,8 @@ def open_proj():
     #frame
     openprojf=Labelframe(projtk,text='打开')
     newprojf=Labelframe(projtk,text='新建')
-    openprojf.pack(side=TOP,expand=True)
-    newprojf.pack(side=TOP,expand=True)
+    openprojf.pack(side=TOP,expand=True,padx=5,pady=5)
+    newprojf.pack(side=TOP,expand=True,padx=5,pady=5)
     #open
     openprojc=Combobox(openprojf,textvariable=openprojname)
     openprojc['values']=os.listdir('projects')
@@ -59,41 +68,43 @@ def open_proj():
     projtk.mainloop()
 
 def refresh():
-    filebox['values']=filter((lambda x:os.path.splitext(x)[1]=='.txt'),os.listdir('projects/'+proj))
+    try:
+        filebox['values']=filter((lambda x:os.path.splitext(x)[1]=='.txt'),os.listdir('projects/'+proj))
+    except Exception as e:
+        log('[ERROR]','error')
+        log(e)
+        log('While loading file list')
 
-def build():
+def build(*_):
     #exec
     savefile()
     def execute():
         def loger(a,origin=''):
             if origin.startswith('##'):
-                textout.insert(END,str(a)+'\n','comment')
+                log(a,'comment')
             elif origin.startswith('Buil'):
-                textout.insert(END,str(a)+'\n','cmd')
+                log(a,'info')
             elif origin.startswith('=> '):
-                textout.insert(END,str(a)+'\n','goto')
+                log(a,'goto')
             elif origin=='[ERROR]' or a=='[ERROR]':
-                textout.insert(END,str(a)+'\n','error')
+                log(a,'error')
             else:
-                textout.insert(END,str(a)+'\n')
-            textout.see(END)
+                log(a)
         textout.config({'state':'normal'})
         textout.delete(1.0,END)
-        loger('Loading Waver Compiler...')
+        log('Loading Waver Central Compiler (VCC)','info')
         try:
             vcc.process(proj,proj,logcallback=loger)
         except AssertionError:
             pass
         except Exception as e:
-            loger('[ERROR]')
-            loger(e)
-            loger('While processing: '+vcc.nowline)
+            log('[ERROR]','error')
+            log(e)
+            log('While processing: '+vcc.nowline)
         else:
-            loger('[FINISH]')
+            log('[FINISH]','success')
             sleep(0.25)
             os.startfile(os.path.join(os.curdir,'projects/%s/%s.wav'%(proj,proj)))
-        finally:
-            textout.config({'state':'disabled'})
     try:
         import threading
         threading.Thread(target=execute,args=()).start()
@@ -101,11 +112,18 @@ def build():
         import thread
         thread.start_new_thread(execute,())
 
-def savefile():
+def savefile(*_):
     if not filenow:
         return
-    with open('projects/%s/%s'%(proj,filenow),'w') as f:
-        f.write(textin.get(1.0,END)[:-1])
+    try:
+        with open('projects/%s/%s'%(proj,filenow),'w') as f:
+            f.write(textin.get(1.0,END)[:-1])
+    except Exception as e:
+        log('[ERROR]','error')
+        log(e)
+        log('While saving '+filenow)
+    else:
+        log('File saved: '+filenow,'success')
 
 def changefile(*_):
     if not filein.get():
@@ -117,16 +135,26 @@ def changefile(*_):
     global filenow
     filen='projects/%s/%s'%(proj,filein.get())
     if os.path.isfile(filen):
-        with open(filen,'r') as f:
-            textin.delete(1.0,END)
-            textin.insert(1.0,f.read())
-    else:
-        if messagebox.askyesno('Waver','文件不存在,是否创建?'):
-            with open(filen,'w') as f:
-                f.write('# Write here.\n')
+        try:
             with open(filen,'r') as f:
                 textin.delete(1.0,END)
                 textin.insert(1.0,f.read())
+        except Exception as e:
+            log('[ERROR]','error')
+            log(e)
+            log('While opening '+filen)
+    else:
+        if messagebox.askyesno('Waver','文件不存在,是否创建?'):
+            try:
+                with open(filen,'w') as f:
+                    f.write('# Write here.\n')
+                with open(filen,'r') as f:
+                    textin.delete(1.0,END)
+                    textin.insert(1.0,f.read())
+            except Exception as e:
+                log('[ERROR]','error')
+                log(e)
+                log('While creating '+filen)
             refresh()
     filenow=filein.get()
 
@@ -136,36 +164,37 @@ if not proj:
 
 tk=Tk()
 tk.title('%s - Waver IDE'%proj)
+tk.resizable(False,False)
 filein=StringVar()
 filenow=''
-#frame
+tk.bind('<Control-s>',savefile)
+tk.bind('<F5>',build)
+#left
 upframe=Frame(tk)
 upframe.pack(side=TOP)
-textin=Text(upframe)
+textin=Text(upframe,width=50,height=30)
 textin.pack(side=LEFT)
 sbar=Scrollbar(upframe,orient=VERTICAL,command=textin.yview)
-sbar.pack(side=RIGHT,fill='both')
+sbar.pack(side=LEFT,fill='both')
 textin['yscrollcommand']=sbar.set
 frame=Frame(tk)
 frame.pack(side=TOP,fill='both')
+#right
+textout=Text(upframe,state='disabled',width=50,height=30)
+textout.tag_config('comment',foreground='green')
+textout.tag_config('info',background='gray')
+textout.tag_config('goto',background='green')
+textout.tag_config('error',foreground='white',background='red')
+textout.tag_config('success',foreground='black',background='green')
+textout.pack(side=LEFT)
 #objs
-Button(frame,text='生成',command=build).pack(side=RIGHT,pady=5)
+Button(frame,text='生成',command=build).pack(side=RIGHT,pady=5,padx=5)
 filebox=Combobox(frame,textvariable=filein)
 refresh()
 filebox.bind('<<ComboboxSelected>>',changefile)
-filebox.pack(side=LEFT)
+filebox.bind('<Return>',changefile)
+filebox.pack(side=LEFT,padx=5)
 Button(frame,text='打开',command=changefile).pack(side=LEFT)
-#status
-downframe=Frame(tk)
-downframe.pack(side=TOP)
-textout=Text(downframe,height=10,state='disabled')
-textout.tag_config('comment',foreground='blue')
-textout.tag_config('cmd',foreground='red')
-textout.tag_config('goto',background='green')
-textout.tag_config('error',foreground='white',background='black')
-textout.pack(side=LEFT)
-outsbar=Scrollbar(downframe,orient=VERTICAL,command=textout.yview)
-outsbar.pack(side=RIGHT,fill='both')
-textout['yscrollcommand']=outsbar.set
 import vcc
+log('Waver IDE by xmcp','info')
 tk.mainloop()

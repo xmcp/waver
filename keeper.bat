@@ -9,5 +9,6 @@ title %proj% - Keeper
 :q
 cls
 vcc.py "%proj%"
+start "" "projects/%proj%/%proj%.wav"
 pause
 goto q
