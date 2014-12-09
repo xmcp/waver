@@ -82,7 +82,9 @@ def open_proj():
 
 def refresh():
     try:
-        filebox['values']=filter((lambda x:os.path.splitext(x)[1]=='.txt'),os.listdir('projects/'+proj))
+        filesvar.set(tuple(filter(
+            (lambda x:os.path.splitext(x)[1]=='.txt'),os.listdir('projects/'+proj)
+            )))
     except Exception as e:
         log('[ERROR]','error')
         log(e)
@@ -92,9 +94,12 @@ def build(*_):
     #exec
     savefile()
     def execute():
+        global musictall
         def loger(a,origin=None,indent=0):
+            a=str(a)
             if not origin:
                 origin=a
+            origin=str(origin)
             if indent:
                 log('.'*(2*indent),'indent',enter=False)
             if origin.startswith('##'):
@@ -110,7 +115,7 @@ def build(*_):
         cls()
         log('Loading Waver Central Compiler (VCC)')
         try:
-            vcc.process(proj,proj,logcallback=loger)
+            musictall=vcc.process(filenow[:-4],proj,logcallback=loger)
         except AssertionError:
             pass
         except Exception as e:
@@ -119,8 +124,7 @@ def build(*_):
             log('While processing: '+vcc.nowline)
         else:
             log('[FINISH]','success')
-            sleep(0.25)
-            os.startfile(os.path.join(os.curdir,'projects/%s/%s.wav'%(proj,proj)))
+            playsnd(filenow[:-4])
     try:
         import threading
         threading.Thread(target=execute,args=()).start()
@@ -141,15 +145,25 @@ def savefile(*_):
     else:
         log('File saved: '+filenow,'success')
 
-def changefile(*_):
-    if not filein.get():
-        return
-    if os.path.splitext(filein.get())[1]!='.txt':
-        messagebox.showerror('Waver','扩展名必须为.txt')
-        return
+def changefile(fromli):
+    if fromli:
+        try:
+            fileno=fileli.selection_get()
+            filen='projects/%s/%s'%(proj,fileno)
+        except Exception as e:
+            log('[ERROR]','error')
+            log(e)
+            log('While opening '+filen)
+    else: #from text
+        fileno=filein.get()
+        if not fileno:
+            return
+        if os.path.splitext(fileno)[1]!='.txt':
+            messagebox.showerror('Waver','扩展名必须为.txt')
+            return
+        filen='projects/%s/%s'%(proj,fileno)
     savefile()
     global filenow
-    filen='projects/%s/%s'%(proj,filein.get())
     if os.path.isfile(filen):
         try:
             with open(filen,'r') as f:
@@ -172,13 +186,27 @@ def changefile(*_):
                 log(e)
                 log('While creating '+filen)
             refresh()
-    filenow=filein.get()
+    filenow=fileno
 
-def playsnd(*_):
-    PlaySound('projects/%s/%s.wav'%(proj,proj),SND_FILENAME|SND_NOWAIT|SND_ASYNC)
+def playsnd(toplay=None):
+    if not toplay:
+        toplay=proj
+    def playnow(proj,toplay):
+        _musictall=musictall
+        playstatus.set('正在播放 '+toplay)
+        PlaySound('projects/%s/%s.wav'%(proj,toplay),SND_FILENAME|SND_NOWAIT|SND_ASYNC)
+        sleep(_musictall)
+        playstatus.set('')
+    try:
+        import threading
+        threading.Thread(target=playnow,args=(proj,toplay)).start()
+    except ImportError:
+        import thread
+        thread.start_new_thread(playnow,(proj,toplay))
 
 def stopsnd(*_):
     PlaySound(None,SND_MEMORY|SND_PURGE)
+    playstatus.set('')
 
 open_proj()
 if not proj:
@@ -188,25 +216,39 @@ tk=Tk()
 tk.title('%s - Waver IDE'%proj)
 tk.resizable(False,False)
 filein=StringVar()
+filesvar=StringVar()
+playstatus=StringVar()
 filein.set(proj+'.txt')
 filenow=''
+musictall=0.0
 #bind
 tk.bind('<Control-s>',savefile)
 tk.bind('<Control-S>',savefile)
 tk.bind('<F5>',build)
-tk.bind('<Escape>',cls)
+tk.bind('<Escape>',stopsnd)
+#sidebar
+frame=Frame(tk)
+frame.pack(side=LEFT,fill='both')
+Button(frame,text='生成',command=build).pack(side=BOTTOM,pady=5,padx=5)
+Button(frame,text='停止',command=stopsnd).pack(side=BOTTOM,pady=5,padx=5)
+Button(frame,text='播放',command=lambda *_:playsnd()).pack(side=BOTTOM,pady=5,padx=5)
+Label(frame,textvariable=playstatus).pack(side=BOTTOM,pady=5,padx=5)
+filebox=Entry(frame,textvariable=filein)
+filebox.bind('<Return>',lambda *_:changefile(fromli=False))
+filebox.pack(side=TOP,pady=5,padx=5)
+fileli=Listbox(frame,listvariable=filesvar,height=10)
+fileli.bind('<<ListboxSelect>>',lambda *_:changefile(fromli=True))
+fileli.pack(side=TOP,pady=5,padx=5)
 #textin
 upframe=Frame(tk)
-upframe.pack(side=TOP)
-textin=Text(upframe,width=50,height=30)
+upframe.pack(side=LEFT)
+textin=Text(upframe,width=50,height=30,font='Consolas')
 textin.pack(side=LEFT)
 sbar=Scrollbar(upframe,orient=VERTICAL,command=textin.yview)
 sbar.pack(side=LEFT,fill='both')
 textin['yscrollcommand']=sbar.set
-frame=Frame(tk)
-frame.pack(side=TOP,fill='both')
 #textout
-textout=Text(upframe,state='disabled',width=50,height=30)
+textout=Text(upframe,state='disabled',width=50,height=30,font='Consolas')
 textout.tag_config('comment',foreground='blue',background='white')
 textout.tag_config('info',foreground='black',background='gray')
 textout.tag_config('goto',foreground='white',background='blue')
@@ -214,17 +256,9 @@ textout.tag_config('error',foreground='white',background='red')
 textout.tag_config('success',foreground='black',background='green')
 textout.tag_config('indent',foreground='blue',background='white')
 textout.pack(side=LEFT)
-#objs
-Button(frame,text='生成',command=build).pack(side=RIGHT,pady=5,padx=5)
-Button(frame,text='停止',command=stopsnd).pack(side=RIGHT,pady=5,padx=5)
-Button(frame,text='播放',command=playsnd).pack(side=RIGHT,pady=5,padx=5)
-filebox=Combobox(frame,textvariable=filein)
-refresh()
-filebox.bind('<<ComboboxSelected>>',changefile)
-filebox.bind('<Return>',changefile)
-filebox.pack(side=LEFT,padx=5)
-Button(frame,text='打开',command=changefile).pack(side=LEFT)
+#done
 import vcc
 log('Waver IDE by xmcp','info')
-changefile()
+refresh()
+changefile(fromli=False)
 tk.mainloop()

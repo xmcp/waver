@@ -95,6 +95,7 @@ def process(proj,workdir,f=None,parentlevel=0,logcallback=None):
         f.write(ratable[rate],time)
     log('Built %s'%proj)
     f.close()
+    return f.gettotaltime()
 
 if __name__=='__main__':
     #open file
