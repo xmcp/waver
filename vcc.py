@@ -40,7 +40,6 @@ def process(proj,workdir,f=None,parentlevel=0,logcallback=None):
             logcallback(outstr,stuff,parentlevel)
     
     global nowline
-    log('Building %s'%proj)
     if parentlevel>10:
         log('[ERROR]',True)
         log('Call stack upper limit exceeded.',True)

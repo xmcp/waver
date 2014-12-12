@@ -104,7 +104,7 @@ def build(*_):
                 log('.'*(2*indent),'indent',enter=False)
             if origin.startswith('##'):
                 log(origin,'comment')
-            elif origin.startswith('Buil'):
+            elif origin.startswith('Built'):
                 log(origin,'info')
             elif origin.startswith('=> '):
                 log(origin,'goto')
@@ -190,23 +190,26 @@ def changefile(fromli):
 
 def playsnd(toplay=None):
     if not toplay:
-        toplay=proj
-    def playnow(proj,toplay):
-        _musictall=musictall
-        playstatus.set('正在播放 '+toplay)
-        PlaySound('projects/%s/%s.wav'%(proj,toplay),SND_FILENAME|SND_NOWAIT|SND_ASYNC)
-        sleep(_musictall)
-        playstatus.set('')
+        toplay=os.path.splitext(filenow)[0]
     try:
-        import threading
-        threading.Thread(target=playnow,args=(proj,toplay)).start()
-    except ImportError:
-        import thread
-        thread.start_new_thread(playnow,(proj,toplay))
+        PlaySound('projects/%s/%s.wav'%(proj,toplay),SND_FILENAME|SND_NOWAIT|SND_ASYNC|SND_PURGE)
+    except Exception as e:
+        log('[ERROR]','error')
+        log(e)
+        log('While playing '+toplay)
+    else:
+        log('Playing '+toplay,'highlight')
+
 
 def stopsnd(*_):
-    PlaySound(None,SND_MEMORY|SND_PURGE)
-    playstatus.set('')
+    try:
+        PlaySound(None,SND_MEMORY|SND_PURGE)
+    except Exception as e:
+        log('[ERROR]','error')
+        log(e)
+        log('While trying to stop sound')
+    else:        
+        log('Music killed','info')
 
 open_proj()
 if not proj:
@@ -217,7 +220,6 @@ tk.title('%s - Waver IDE'%proj)
 tk.resizable(False,False)
 filein=StringVar()
 filesvar=StringVar()
-playstatus=StringVar()
 filein.set(proj+'.txt')
 filenow=''
 musictall=0.0
@@ -232,7 +234,6 @@ frame.pack(side=LEFT,fill='both')
 Button(frame,text='生成',command=build).pack(side=BOTTOM,pady=5,padx=5)
 Button(frame,text='停止',command=stopsnd).pack(side=BOTTOM,pady=5,padx=5)
 Button(frame,text='播放',command=lambda *_:playsnd()).pack(side=BOTTOM,pady=5,padx=5)
-Label(frame,textvariable=playstatus).pack(side=BOTTOM,pady=5,padx=5)
 filebox=Entry(frame,textvariable=filein)
 filebox.bind('<Return>',lambda *_:changefile(fromli=False))
 filebox.pack(side=TOP,pady=5,padx=5)
@@ -255,6 +256,7 @@ textout.tag_config('goto',foreground='white',background='blue')
 textout.tag_config('error',foreground='white',background='red')
 textout.tag_config('success',foreground='black',background='green')
 textout.tag_config('indent',foreground='blue',background='white')
+textout.tag_config('highlight',foreground='black',background='yellow')
 textout.pack(side=LEFT)
 #done
 import vcc
