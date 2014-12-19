@@ -61,30 +61,34 @@ def open_proj():
     projtk.resizable(False,False)
     newprojname=StringVar()
     openprojname=StringVar()
+    openprojname.set('选择工程……')
     #frame
     openprojf=Labelframe(projtk,text='打开')
     newprojf=Labelframe(projtk,text='新建')
-    openprojf.pack(side=TOP,expand=True,padx=5,pady=5)
-    newprojf.pack(side=TOP,expand=True,padx=5,pady=5)
+    openprojf.grid(row=0,column=0,sticky='we',padx=5,pady=5)
+    newprojf.grid(row=1,column=0,sticky='we',padx=5,pady=5)
+    projtk.columnconfigure(0,weight=1)
+    openprojf.columnconfigure(0,weight=1)
+    newprojf.columnconfigure(0,weight=1)
     #open
     openprojc=Combobox(openprojf,textvariable=openprojname)
     openprojc['values']=os.listdir('projects')
     openprojc.bind('<Return>',open_now)
-    openprojc.pack(side=LEFT)
-    openprojbtn=Button(openprojf,text='打开',command=open_now).pack(side=RIGHT)
+    openprojc.bind('<<ComboboxSelected>>',open_now)
+    openprojc.grid(row=0,column=0,sticky='we',padx=3,pady=2)
     #new
     newproje=Entry(newprojf,textvariable=newprojname)
     newproje.bind('<Return>',new_now)
-    newproje.pack(side=LEFT,padx=9)
-    Button(newprojf,text='新建',command=new_now).pack(side=RIGHT)
+    newproje.grid(row=0,column=0,sticky='we',padx=3,pady=2)
     #loop
     projtk.mainloop()
 
 def refresh():
     try:
-        filesvar.set(tuple(filter(
+        filesli=tuple(filter(
             (lambda x:os.path.splitext(x)[1]=='.txt'),os.listdir('projects/'+proj)
-            )))
+            ))
+        filesvar.set(filesli)
     except Exception as e:
         log('[ERROR]','error')
         log(e)
@@ -187,6 +191,7 @@ def changefile(fromli):
                 log('While creating '+filen)
             refresh()
     filenow=fileno
+    tk.title('[%s] %s - Wave IDE'%(filenow,proj))
 
 def playsnd(toplay=None):
     if not toplay:
@@ -201,15 +206,19 @@ def playsnd(toplay=None):
         log('Playing '+toplay,'highlight')
 
 
-def stopsnd(*_):
+def stopsnd(quiting=False):
     try:
         PlaySound(None,SND_MEMORY|SND_PURGE)
     except Exception as e:
-        log('[ERROR]','error')
-        log(e)
-        log('While trying to stop sound')
-    else:        
-        log('Music killed','info')
+        if quiting:
+            raise
+        else:
+            log('[ERROR]','error')
+            log(e)
+            log('While trying to stop sound')
+    else:
+        if not quiting:
+            log('Music killed','info')
 
 open_proj()
 if not proj:
@@ -217,39 +226,48 @@ if not proj:
 
 tk=Tk()
 tk.title('%s - Waver IDE'%proj)
-tk.resizable(False,False)
 filein=StringVar()
 filesvar=StringVar()
 filein.set(proj+'.txt')
 filenow=''
 musictall=0.0
+tk.rowconfigure(0,weight=1)
 #bind
 tk.bind('<Control-s>',savefile)
 tk.bind('<Control-S>',savefile)
 tk.bind('<F5>',build)
-tk.bind('<Escape>',stopsnd)
+tk.bind('<Escape>',lambda *_:stopsnd())
+tk.bind('<Shift-Escape>',cls)
 #sidebar
 frame=Frame(tk)
-frame.pack(side=LEFT,fill='both')
-Button(frame,text='生成',command=build).pack(side=BOTTOM,pady=5,padx=5)
-Button(frame,text='停止',command=stopsnd).pack(side=BOTTOM,pady=5,padx=5)
-Button(frame,text='播放',command=lambda *_:playsnd()).pack(side=BOTTOM,pady=5,padx=5)
+frame.grid(row=0,column=0,sticky='ns')
+#sidebar-box
 filebox=Entry(frame,textvariable=filein)
 filebox.bind('<Return>',lambda *_:changefile(fromli=False))
-filebox.pack(side=TOP,pady=5,padx=5)
-fileli=Listbox(frame,listvariable=filesvar,height=10)
+filebox.grid(row=0,column=0,pady=5,padx=5)
+#sidebar-li
+fileli=Listbox(frame,listvariable=filesvar)
 fileli.bind('<<ListboxSelect>>',lambda *_:changefile(fromli=True))
-fileli.pack(side=TOP,pady=5,padx=5)
-#textin
+fileli.grid(row=1,column=0,pady=5,padx=5,sticky='ns')
+frame.rowconfigure(1,weight=1,minsize=5)
+#sidebar-btn
+Button(frame,text='生成',command=build).grid(row=2,column=0,pady=5,padx=5)
+Button(frame,text='停止',command=stopsnd).grid(row=3,column=0,pady=5,padx=5)
+Button(frame,text='播放',command=lambda *_:playsnd()).grid(row=4,column=0,pady=5,padx=5)
+#mainpart
 upframe=Frame(tk)
-upframe.pack(side=LEFT)
-textin=Text(upframe,width=50,height=30,font='Consolas')
-textin.pack(side=LEFT)
+upframe.grid(row=0,column=1,sticky='nsew')
+tk.columnconfigure(1,weight=1)
+upframe.rowconfigure(0,weight=1)
+#mainpart-textin
+textin=Text(upframe,font='Consolas')
+textin.grid(row=0,column=0,sticky='nsew')
+upframe.columnconfigure(0,weight=1,minsize=200)
 sbar=Scrollbar(upframe,orient=VERTICAL,command=textin.yview)
-sbar.pack(side=LEFT,fill='both')
+sbar.grid(row=0,column=1,sticky='ns')
 textin['yscrollcommand']=sbar.set
-#textout
-textout=Text(upframe,state='disabled',width=50,height=30,font='Consolas')
+#mainpart-textout
+textout=Text(upframe,state='disabled',font='Consolas')
 textout.tag_config('comment',foreground='blue',background='white')
 textout.tag_config('info',foreground='black',background='gray')
 textout.tag_config('goto',foreground='white',background='blue')
@@ -257,10 +275,12 @@ textout.tag_config('error',foreground='white',background='red')
 textout.tag_config('success',foreground='black',background='green')
 textout.tag_config('indent',foreground='blue',background='white')
 textout.tag_config('highlight',foreground='black',background='yellow')
-textout.pack(side=LEFT)
+textout.grid(row=0,column=2,sticky='nsew')
+upframe.columnconfigure(2,weight=2,minsize=400)
 #done
 import vcc
 log('Waver IDE by xmcp','info')
 refresh()
 changefile(fromli=False)
 tk.mainloop()
+stopsnd(quiting=True)

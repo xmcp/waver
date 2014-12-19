@@ -1,5 +1,4 @@
-## yang tai shan
-
+# yang tai shan
 +1	2
 +2	2
 +2	2
@@ -20,7 +19,7 @@
 +1	1
 6	4
 
-## nian qing de
+# nian qing de
 +2	2
 +3	2
 +4	2
@@ -41,8 +40,7 @@
 +1	1
 +2	4
 
-## wan yan huang
-
+# wan yan huang
 +1	2
 +2	2
 +2	2
@@ -61,10 +59,9 @@
 7	2
 7	2
 7	1
-+1	3
++1	4
 
-## zhe xin hai
-
+# zhe xin hai
 +2	2
 +3	2
 +4	2
