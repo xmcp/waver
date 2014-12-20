@@ -205,7 +205,7 @@ def changefile(fromli):
                 log('While creating '+filen)
             refresh()
     filenow=fileno
-    tk.title('[%s] %s - Wave IDE'%(filenow,proj))
+    tk.title('[%s] %s - Waver IDE'%(filenow,proj))
 
 def explorer(*_):
     try:
@@ -257,14 +257,15 @@ def notebook(*_):
         
         notek=Tk()
         notek.geometry("200x350")
-        notek.title('Waver Notebook')
+        notek.title('VDE Notebook')
         notek.wm_attributes('-topmost',1)
         f=Frame(notek)
         f.pack(side=TOP)
         Button(f,text='清空',command=clear).pack(side=RIGHT)
         Button(f,text='分隔',command=split).pack(side=LEFT)
-        t=Text(notek,background='gray')
+        t=Text(notek,background='gray',font='Consolas')
         t.bind('<Control-Return>',split)
+        t.bind('<Escape>',clear)
         t.tag_config('spliter',background='yellow')
         t.pack(side=TOP,expand=True,fill='both')
         notek.focus_force()
