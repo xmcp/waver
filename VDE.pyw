@@ -1,18 +1,23 @@
 #coding=utf-8
-try:
+import sys
+if sys.version[0]=='3':
+    modern=True
+elif sys.version[0]=='2':
+    modern=False
+else:
+    raise AssertionError
+
+if modern:
     from tkinter import *
     from tkinter.ttk import *
     from tkinter import messagebox
-except ImportError:
+    import threading
+else:
     from Tkinter import *
     from ttk import *
     import tkMessageBox as messagebox
-try:
-    from winsound import *
-except:
-    pass
+    import thread
 import os
-import sys
 from time import sleep
 proj=''
 
@@ -58,7 +63,7 @@ def open_proj():
     
     projtk=Tk()
     projtk.title('Waver IDE')
-    projtk.resizable(False,False)
+    projtk.resizable(True,False)
     newprojname=StringVar()
     openprojname=StringVar()
     openprojname.set('选择工程……')
@@ -97,6 +102,9 @@ def refresh():
 def build(*_):
     #exec
     savefile()
+    if nobuild:
+        log('Build function disabled','error')
+        return
     def execute():
         global musictall
         def loger(a,origin=None,indent=0):
@@ -129,25 +137,29 @@ def build(*_):
         else:
             log('[FINISH]','success')
             playsnd(filenow[:-4])
-    try:
-        import threading
+    if modern:
         threading.Thread(target=execute,args=()).start()
-    except ImportError:
-        import thread
+    else:
         thread.start_new_thread(execute,())
 
 def savefile(*_):
     if not filenow:
-        return
+        return True
     try:
+        tex=textin.get(1.0,END)[:-1]
         with open('projects/%s/%s'%(proj,filenow),'w') as f:
-            f.write(textin.get(1.0,END)[:-1])
+            if modern:
+                f.write(tex)
+            else:
+                f.write(tex.encode('utf-8'))
     except Exception as e:
         log('[ERROR]','error')
         log(e)
         log('While saving '+filenow)
+        return False
     else:
         log('File saved: '+filenow,'success')
+        return True
 
 def changefile(fromli):
     if fromli:
@@ -166,7 +178,9 @@ def changefile(fromli):
             messagebox.showerror('Waver','扩展名必须为.txt')
             return
         filen='projects/%s/%s'%(proj,fileno)
-    savefile()
+    if not savefile():
+        if not messagebox.askyesno('Waver IDE','保存失败,仍要继续吗?\n警告:仍然继续可能会导致内容丢失'):
+            return
     global filenow
     if os.path.isfile(filen):
         try:
@@ -193,7 +207,18 @@ def changefile(fromli):
     filenow=fileno
     tk.title('[%s] %s - Wave IDE'%(filenow,proj))
 
+def explorer(*_):
+    try:
+        os.startfile(os.path.join(os.curdir,'projects/%s'%proj))
+    except Exception as e:
+        log('[ERROR]','error')
+        log(e)
+        log('While exploring project folder')
+
 def playsnd(toplay=None):
+    if nosnd:
+        log('Sound playing function disabled','error')
+        return
     if not toplay:
         toplay=os.path.splitext(filenow)[0]
     try:
@@ -207,6 +232,8 @@ def playsnd(toplay=None):
 
 
 def stopsnd(quiting=False):
+    if nosnd:
+        return
     try:
         PlaySound(None,SND_MEMORY|SND_PURGE)
     except Exception as e:
@@ -220,12 +247,41 @@ def stopsnd(quiting=False):
         if not quiting:
             log('Music killed','info')
 
+def notebook(*_):
+    def notewin():
+        def split(*_):
+            t.insert(INSERT,'\n')
+            t.insert(INSERT,'-----\n','spliter')
+        def clear(*_):
+            t.delete(1.0,END)
+        
+        notek=Tk()
+        notek.geometry("200x350")
+        notek.title('Waver Notebook')
+        notek.wm_attributes('-topmost',1)
+        f=Frame(notek)
+        f.pack(side=TOP)
+        Button(f,text='清空',command=clear).pack(side=RIGHT)
+        Button(f,text='分隔',command=split).pack(side=LEFT)
+        t=Text(notek,background='gray')
+        t.bind('<Control-Return>',split)
+        t.tag_config('spliter',background='yellow')
+        t.pack(side=TOP,expand=True,fill='both')
+        notek.focus_force()
+        notek.mainloop()
+    
+    tk.newWindow=notewin()
+
 open_proj()
 if not proj:
     sys.exit(-2048)
 
+nobuild=False
+nosnd=False
+
 tk=Tk()
 tk.title('%s - Waver IDE'%proj)
+tk.geometry("850x500")
 filein=StringVar()
 filesvar=StringVar()
 filein.set(proj+'.txt')
@@ -235,6 +291,10 @@ tk.rowconfigure(0,weight=1)
 #bind
 tk.bind('<Control-s>',savefile)
 tk.bind('<Control-S>',savefile)
+tk.bind('<Control-b>',explorer)
+tk.bind('<Control-B>',explorer)
+tk.bind('<Control-n>',notebook)
+tk.bind('<Control-N>',notebook)
 tk.bind('<F5>',build)
 tk.bind('<Escape>',lambda *_:stopsnd())
 tk.bind('<Shift-Escape>',cls)
@@ -244,16 +304,19 @@ frame.grid(row=0,column=0,sticky='ns')
 #sidebar-box
 filebox=Entry(frame,textvariable=filein)
 filebox.bind('<Return>',lambda *_:changefile(fromli=False))
-filebox.grid(row=0,column=0,pady=5,padx=5)
+filebox.grid(row=0,column=0,columnspan=2,pady=5,padx=5,sticky='we')
 #sidebar-li
 fileli=Listbox(frame,listvariable=filesvar)
 fileli.bind('<<ListboxSelect>>',lambda *_:changefile(fromli=True))
-fileli.grid(row=1,column=0,pady=5,padx=5,sticky='ns')
+fileli.grid(row=1,column=0,columnspan=2,pady=5,padx=5,sticky='wens')
 frame.rowconfigure(1,weight=1,minsize=5)
 #sidebar-btn
-Button(frame,text='生成',command=build).grid(row=2,column=0,pady=5,padx=5)
-Button(frame,text='停止',command=stopsnd).grid(row=3,column=0,pady=5,padx=5)
-Button(frame,text='播放',command=lambda *_:playsnd()).grid(row=4,column=0,pady=5,padx=5)
+Button(frame,text='浏览',command=explorer).grid(row=2,column=0,pady=2)
+Button(frame,text='刷新',command=refresh).grid(row=2,column=1,pady=2)
+Button(frame,text='播放',command=lambda *_:playsnd()).grid(row=3,column=0,pady=2)
+Button(frame,text='停止',command=stopsnd).grid(row=3,column=1,pady=2)
+Button(frame,text='生成',command=build).grid(row=4,column=0,pady=2)
+Button(frame,text='随记',command=notebook).grid(row=4,column=1,pady=2)
 #mainpart
 upframe=Frame(tk)
 upframe.grid(row=0,column=1,sticky='nsew')
@@ -278,9 +341,25 @@ textout.tag_config('highlight',foreground='black',background='yellow')
 textout.grid(row=0,column=2,sticky='nsew')
 upframe.columnconfigure(2,weight=2,minsize=400)
 #done
-import vcc
 log('Waver IDE by xmcp','info')
+try:
+    import vcc
+except Exception as e:
+    log('[ERROR]','error')
+    log(e)
+    log('While loading VCC')
+    log('Build function will be disabled.','highlight')
+    nobuild=True
+try:
+    from winsound import *
+except:
+    log('[ERROR]','error')
+    log(e)
+    log('While loading winsound')
+    log('Sound playing function will be disabled','highlight')
+    nosnd=True
 refresh()
 changefile(fromli=False)
+tk.focus_force()
 tk.mainloop()
 stopsnd(quiting=True)
