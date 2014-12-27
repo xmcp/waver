@@ -19,14 +19,19 @@ else:
     import thread
 import os
 from time import sleep
+
 proj=''
 
 def log(a,mode=None,enter=True):
     textout.config({'state':'normal'})
-    if mode:
-        textout.insert(END,str(a),mode)
+    if modern:
+        a=str(a)
     else:
-        textout.insert(END,str(a))
+        a=unicode(a)
+    if mode:
+        textout.insert(END,a,mode)
+    else:
+        textout.insert(END,a)
     if enter:
         textout.insert(END,'\n')
     textout.config({'state':'disabled'})
@@ -43,20 +48,14 @@ def open_proj():
         try:
             global vcc
             import vcc
-        except Exception as e:
-            log('[ERROR]','error')
-            log(e)
-            log('While loading VCC')
-            log('Build function will be disabled.','highlight')
+        except:
+            global nobuild
             nobuild=True
         try:
             global winsound
             import winsound
         except:
-            log('[ERROR]','error')
-            log(e)
-            log('While loading winsound')
-            log('Sound playing function will be disabled','highlight')
+            global nosnd
             nosnd=True
         projtk.destroy()
     
@@ -99,7 +98,10 @@ def open_proj():
     newprojf.columnconfigure(0,weight=1)
     #open
     openprojc=Combobox(openprojf,textvariable=openprojname)
-    openprojc['values']=os.listdir('projects')
+    if modern:
+        openprojc['values']=os.listdir('projects')
+    else:
+        openprojc['values']=tuple([a.decode('gbk') for a in os.listdir('projects')])
     openprojc.bind('<Return>',open_now)
     openprojc.bind('<<ComboboxSelected>>',open_now)
     openprojc.grid(row=0,column=0,sticky='we',padx=3,pady=2)
@@ -112,9 +114,19 @@ def open_proj():
 
 def refresh():
     try:
-        filesli=tuple(filter(
-            (lambda x:os.path.splitext(x)[1]=='.txt'),os.listdir('projects/'+proj)
-            ))
+        if modern:
+            filesli=tuple(filter(
+                (lambda x:os.path.splitext(x)[1]=='.txt'),
+                os.listdir('projects/'+proj)
+                ))
+        else:
+            filesli=list(filter(
+                (lambda x:os.path.splitext(x.decode('gbk')[1]=='.txt')),
+                os.listdir('projects/'+proj)
+                ))
+            for now in range(len(filesli)):
+                filesli[now]=filesli[now].decode('gbk')
+            filesli=tuple(filesli)
         filesvar.set(filesli)
     except Exception as e:
         log('[ERROR]','error')
@@ -155,7 +167,7 @@ def build(*_):
         except Exception as e:
             log('[ERROR]','error')
             log(e)
-            log('While processing: '+vcc.nowline)
+            log('While processing: '+(vcc.nowline if vcc.nowline else '(None)'))
         else:
             log('[FINISH]','success')
             playsnd(filenow[:-4])
@@ -296,12 +308,11 @@ def notebook(*_):
     
     tk.newWindow=notewin()
 
+nobuild=False
+nosnd=False
 open_proj()
 if not proj:
     sys.exit(-2048)
-
-nobuild=False
-nosnd=False
 
 tk=Tk()
 tk.title('%s - Waver IDE'%proj)
@@ -354,18 +365,31 @@ sbar=Scrollbar(upframe,orient=VERTICAL,command=textin.yview)
 sbar.grid(row=0,column=1,sticky='ns')
 textin['yscrollcommand']=sbar.set
 #mainpart-textout
+white='#FFFFFF'
+blue='#0000FF'
+black='#000000'
+gray='#BEBEBE'
+red='#FF0000'
+yellow='#FFFF00'
+green='#00FF00'
 textout=Text(upframe,state='disabled',font='Consolas')
-textout.tag_config('comment',foreground='blue',background='white')
-textout.tag_config('info',foreground='black',background='gray')
-textout.tag_config('goto',foreground='white',background='blue')
-textout.tag_config('error',foreground='white',background='red')
-textout.tag_config('success',foreground='black',background='green')
-textout.tag_config('indent',foreground='blue',background='white')
-textout.tag_config('highlight',foreground='black',background='yellow')
+textout.tag_config('comment',foreground=blue,background=white)
+textout.tag_config('info',foreground=black,background=gray)
+textout.tag_config('goto',foreground=white,background=blue)
+textout.tag_config('error',foreground=white,background=red)
+textout.tag_config('success',foreground=black,background=green)
+textout.tag_config('indent',foreground=blue,background=white)
+textout.tag_config('highlight',foreground=black,background=yellow)
 textout.grid(row=0,column=2,sticky='nsew')
 upframe.columnconfigure(2,weight=2,minsize=400)
 #done
 log('Waver IDE by xmcp','info')
+if nobuild:
+    log('Cannot load VCC','error')
+    log('Build function will be disabled.','highlight')
+if nosnd:
+    log('Cannot load winsound','error')
+    log('Sound playing function will be disabled','highlight')
 refresh()
 changefile(fromli=False)
 tk.focus_force()
