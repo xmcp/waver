@@ -38,6 +38,28 @@ def cls(*_):
     textout.config({'state':'disabled'})
 
 def open_proj():
+    def done():
+        projtk.title('加载编译器...')
+        try:
+            global vcc
+            import vcc
+        except Exception as e:
+            log('[ERROR]','error')
+            log(e)
+            log('While loading VCC')
+            log('Build function will be disabled.','highlight')
+            nobuild=True
+        try:
+            global winsound
+            import winsound
+        except:
+            log('[ERROR]','error')
+            log(e)
+            log('While loading winsound')
+            log('Sound playing function will be disabled','highlight')
+            nosnd=True
+        projtk.destroy()
+    
     def open_now(*_):
         global proj
         proj=openprojname.get()
@@ -46,7 +68,7 @@ def open_proj():
         if not os.path.isdir('projects/'+proj) or not os.path.isfile('projects/%s/%s.txt'%(proj,proj)):
             messagebox.showerror('Waver','工程不存在')
             return
-        projtk.destroy()
+        done()
 
     def new_now(*_):
         global proj
@@ -59,7 +81,7 @@ def open_proj():
         os.makedirs('projects/'+proj)
         with open('projects/%s/%s.txt'%(proj,proj),'w') as f:
             f.write('# Write here.\n')
-        projtk.destroy()
+        done()
     
     projtk=Tk()
     projtk.title('Waver IDE')
@@ -85,7 +107,7 @@ def open_proj():
     newproje=Entry(newprojf,textvariable=newprojname)
     newproje.bind('<Return>',new_now)
     newproje.grid(row=0,column=0,sticky='we',padx=3,pady=2)
-    #loop
+    #done
     projtk.mainloop()
 
 def refresh():
@@ -222,7 +244,8 @@ def playsnd(toplay=None):
     if not toplay:
         toplay=os.path.splitext(filenow)[0]
     try:
-        PlaySound('projects/%s/%s.wav'%(proj,toplay),SND_FILENAME|SND_NOWAIT|SND_ASYNC|SND_PURGE)
+        winsound.PlaySound('projects/%s/%s.wav'%(proj,toplay),
+                           winsound.SND_FILENAME|winsound.SND_NOWAIT|winsound.SND_ASYNC|winsound.SND_PURGE)
     except Exception as e:
         log('[ERROR]','error')
         log(e)
@@ -235,7 +258,7 @@ def stopsnd(quiting=False):
     if nosnd:
         return
     try:
-        PlaySound(None,SND_MEMORY|SND_PURGE)
+        winsound.PlaySound(None,winsound.SND_MEMORY|winsound.SND_PURGE)
     except Exception as e:
         if quiting:
             raise
@@ -343,22 +366,6 @@ textout.grid(row=0,column=2,sticky='nsew')
 upframe.columnconfigure(2,weight=2,minsize=400)
 #done
 log('Waver IDE by xmcp','info')
-try:
-    import vcc
-except Exception as e:
-    log('[ERROR]','error')
-    log(e)
-    log('While loading VCC')
-    log('Build function will be disabled.','highlight')
-    nobuild=True
-try:
-    from winsound import *
-except:
-    log('[ERROR]','error')
-    log(e)
-    log('While loading winsound')
-    log('Sound playing function will be disabled','highlight')
-    nosnd=True
 refresh()
 changefile(fromli=False)
 tk.focus_force()
