@@ -114,19 +114,10 @@ def open_proj():
 
 def refresh():
     try:
-        if modern:
-            filesli=tuple(filter(
-                (lambda x:os.path.splitext(x)[1]=='.txt'),
-                os.listdir('projects/'+proj)
-                ))
-        else:
-            filesli=list(filter(
-                (lambda x:os.path.splitext(x.decode('gbk')[1]=='.txt')),
-                os.listdir('projects/'+proj)
-                ))
-            for now in range(len(filesli)):
-                filesli[now]=filesli[now].decode('gbk')
-            filesli=tuple(filesli)
+        filesli=tuple(filter(
+            (lambda x:os.path.splitext(x)[1]=='.txt'),
+            os.listdir('projects/'+proj)
+            ))
         filesvar.set(filesli)
     except Exception as e:
         log('[ERROR]','error')
@@ -255,8 +246,11 @@ def playsnd(toplay=None):
         return
     if not toplay:
         toplay=os.path.splitext(filenow)[0]
+    sndname='projects/%s/%s.wav'%(proj,toplay)
+    if not modern:
+        sndname=sndname.encode('utf-8')
     try:
-        winsound.PlaySound('projects/%s/%s.wav'%(proj,toplay),
+        winsound.PlaySound(sndname,
                            winsound.SND_FILENAME|winsound.SND_NOWAIT|winsound.SND_ASYNC|winsound.SND_PURGE)
     except Exception as e:
         log('[ERROR]','error')
@@ -326,8 +320,8 @@ tk.rowconfigure(0,weight=1)
 #bind
 tk.bind('<Control-s>',savefile)
 tk.bind('<Control-S>',savefile)
-tk.bind('<Control-b>',explorer)
-tk.bind('<Control-B>',explorer)
+tk.bind('<Control-e>',explorer)
+tk.bind('<Control-E>',explorer)
 tk.bind('<Control-n>',notebook)
 tk.bind('<Control-N>',notebook)
 tk.bind('<F5>',build)
@@ -384,6 +378,13 @@ textout.grid(row=0,column=2,sticky='nsew')
 upframe.columnconfigure(2,weight=2,minsize=400)
 #done
 log('Waver IDE by xmcp','info')
+if not modern:
+    try:
+        str(proj)
+    except Exception as e:
+        log('[WARNING]','error')
+        log(e)
+        log('Please use Python 3 to build this project','highlight')
 if nobuild:
     log('Cannot load VCC','error')
     log('Build function will be disabled.','highlight')
