@@ -1,8 +1,7 @@
 #coding=utf-8
 from __future__ import division
 import wave
-from numpy import arange,short
-from scipy import signal
+import numpy as np
 
 class wavefile(object):
     _framerate=16384
@@ -21,11 +20,15 @@ class wavefile(object):
         else:
             self.data=''
         self._tall=0
-
+        
     def write_bin(self,rate,time):
-        t=arange(0,time,1.0/self._framerate)
-        wave_data=signal.chirp(t,rate,time,rate,method='linear')*self._volumn
-        wave_data=wave_data.astype(short)
+        dt=1./self._framerate
+        #print(rate,time)
+        if rate>1e-5:
+            w=np.arange(0,time*2*np.pi*rate,dt*2*np.pi*rate)
+            wave_data=(self._volumn*np.sin(w)).astype(np.short)
+        else:
+            wave_data=np.zeros((round(time/dt),),dtype=np.short)
         if self.f:
             self.f.writeframes(wave_data.tostring())
         else:
